@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Bookings</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <span class="logo">✈️ Flight Booking System</span>
+
+  <div class="nav-right">
+
+    <!-- MAIN NAV LINKS -->
+    <a href="/home">Home</a>
+    <a href="/search" class="book-now-btn">Book Now</a>
+    <a href="/bookings">My Bookings</a>
+
+    <!-- PROFILE DROPDOWN -->
+    <div class="profile-dropdown">
+      <div class="profile-header" onclick="toggleProfileMenu()">
+        <span class="profile-icon">👤</span>
+        <span id="username"></span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- DROPDOWN MENU -->
+      <div id="profileMenu" class="profile-menu">
+        <div class="menu-item" id="wallet">💰 Wallet: ₹0</div>
+        <a href="/help" class="menu-item">📘 Help</a>
+        <div class="menu-item logout" onclick="logout()">🚪 Logout</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+
+
+<!-- TITLE -->
+<h2 class="page-title">📜 My Booking History</h2>
+
+<!-- BOOKINGS CONTAINER -->
+<div id="bookingContainer" class="booking-container">
+  <!-- Cards will be injected here -->
+</div>
+
+<script src="js/bookings.js"></script>
+</body>
+</html>
