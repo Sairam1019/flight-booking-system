@@ -1,13 +1,12 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Flight = require("../models/Flight");
 const Booking = require("../models/Booking");
-const db = require("../config/mysql");
+const User = require("../models/User");
 const generatePNR = require("../utils/generatePNR");
 const generatePDF = require("../utils/generatePDF");
 
 const router = express.Router();
-module.exports = router;
-
 
 /**
  * POST /api/book
@@ -15,73 +14,54 @@ module.exports = router;
  */
 router.post("/", async (req, res) => {
   try {
-    console.log("👉 Booking request body:", req.body);
-
     const { user_id, passenger_name, flight_id } = req.body;
 
-    const flight = await Flight.findOne({ flight_id });
-    console.log("👉 Flight found:", flight);
-
-    if (!flight) {
-      return res.status(404).json({ message: "Flight not found" });
+    // 🔒 Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(user_id)) {
+      return res.status(400).json({ error: "Invalid user ID" });
     }
 
-    db.query(
-      "SELECT wallet_balance FROM users WHERE id = ?",
-      [user_id],
-      async (err, result) => {
-        console.log("👉 MySQL result:", result, "Error:", err);
+    const flight = await Flight.findOne({ flight_id });
+    if (!flight) {
+      return res.status(404).json({ error: "Flight not found" });
+    }
 
-        if (err) {
-          console.error("❌ MySQL error");
-          return res.status(500).json({ error: "MySQL error" });
-        }
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-        if (!result || result.length === 0) {
-          return res.status(404).json({ message: "User not found in MySQL" });
-        }
+    if (user.wallet_balance < flight.current_price) {
+      return res.status(400).json({ error: "Insufficient wallet balance" });
+    }
 
-        const balance = result[0].wallet_balance;
+    // 💰 Deduct wallet
+    user.wallet_balance -= flight.current_price;
+    await user.save();
 
-        if (balance < flight.current_price) {
-          return res.status(400).json({
-            message: "Insufficient wallet balance"
-          });
-        }
+    // ✈️ Create booking
+    const booking = new Booking({
+      user_id,
+      passenger_name,
+      flight_id,
+      airline: flight.airline,
+      route: `${flight.departure_city} → ${flight.arrival_city}`,
+      amount_paid: flight.current_price,
+      pnr: generatePNR()
+    });
 
-        db.query(
-          "UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?",
-          [flight.current_price, user_id],
-          async (err2) => {
-            if (err2) {
-              console.error("❌ Wallet update failed");
-              return res.status(500).json({ error: "Wallet update failed" });
-            }
+    booking.ticket_path = generatePDF(booking);
+    await booking.save();
 
-            const booking = new Booking({
-              user_id,
-              passenger_name,
-              flight_id: flight.flight_id,
-              airline: flight.airline,
-              route: `${flight.departure_city} → ${flight.arrival_city}`,
-              amount_paid: flight.current_price,
-              pnr: generatePNR()
-            });
+    res.json({
+      message: "Booking successful",
+      booking
+    });
 
-            booking.ticket_path = generatePDF(booking);
-
-            await booking.save();
-
-            res.json({
-              message: "Booking successful",
-              booking
-            });
-          }
-        );
-      }
-    );
   } catch (err) {
-    console.error("❌ Booking catch error:", err);
+    console.error("Booking error:", err);
     res.status(500).json({ error: "Booking failed" });
   }
 });
+
+module.exports = router;

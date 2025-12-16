@@ -12,11 +12,13 @@ const FlightSchema = new mongoose.Schema({
   },
   departure_city: {
     type: String,
-    required: true
+    required: true,
+    index: true        // 🔥 faster search
   },
   arrival_city: {
     type: String,
-    required: true
+    required: true,
+    index: true        // 🔥 faster search
   },
   base_price: {
     type: Number,

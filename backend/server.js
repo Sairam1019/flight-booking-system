@@ -4,16 +4,19 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-// DB connections
-require("./config/mongodb");   // MongoDB
-require("./config/mysql");     // MySQL
+// ================= DATABASE CONNECTIONS =================
+// MongoDB Atlas (Flights, Bookings, Attempts)
+require("./config/mongodb");
 
-// Routes
+// ⚠️ If you are STILL using MySQL for users/wallet, keep this
+// If you fully migrated users to MongoDB, you can REMOVE this line
+
+// ================= ROUTES =================
+const authRoutes = require("./routes/auth");
 const flightRoutes = require("./routes/flights");
 const bookingRoutes = require("./routes/booking");
 const bookingHistoryRoutes = require("./routes/bookings");
 const ticketRoutes = require("./routes/ticket");
-const authRoutes = require("./routes/auth");
 const walletRoutes = require("./routes/wallet");
 
 const app = express();
@@ -65,10 +68,16 @@ app.get("/help", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/help.html"));
 });
 
+// ================= HEALTH CHECK (DEPLOYMENT SAFE) =================
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", message: "Flight Booking Backend Running" });
+});
+
+
 // ================= START SERVER =================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log("🚀 Flight Booking System is running");
-  console.log(`🌐 Open: http://localhost:${PORT}`);
+  console.log("🚀 Flight Booking System Backend Started");
+  console.log(`🌐 Open in browser: http://localhost:${PORT}`);
 });

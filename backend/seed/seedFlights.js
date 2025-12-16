@@ -1,5 +1,14 @@
-require("../config/mongodb");
+require("dotenv").config();
+const mongoose = require("mongoose");
 const Flight = require("../models/Flight");
+
+// 🔹 MongoDB connection (explicit for seed script)
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Atlas Connected for Seeding"))
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 const flights = [
   { flight_id: "AI101", airline: "Air India", departure_city: "Hyderabad", arrival_city: "Delhi", base_price: 2200, current_price: 2200 },
@@ -47,16 +56,17 @@ const flights = [
   { flight_id: "AI140", airline: "SpiceJet", departure_city: "Hyderabad", arrival_city: "Nagpur", base_price: 2100, current_price: 2100 }
 ];
 
-async function seed() {
+async function seedFlights() {
   try {
-    await Flight.deleteMany();
-    await Flight.insertMany(flights);
-    console.log("✅ 40 Flights seeded successfully");
-    process.exit();
+    await Flight.deleteMany({});
+    await Flight.insertMany(flights, { ordered: false });
+
+    console.log("✅ 40 Flights seeded successfully into MongoDB Atlas");
+    process.exit(0);
   } catch (err) {
-    console.error("❌ Seeding error:", err);
+    console.error("❌ Flight seeding failed:", err);
     process.exit(1);
   }
 }
 
-seed();
+seedFlights();

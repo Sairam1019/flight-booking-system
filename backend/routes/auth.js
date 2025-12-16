@@ -1,6 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const db = require("../config/mysql");
+const User = require("../models/User");
 
 const router = express.Router();
 
@@ -9,55 +9,73 @@ const router = express.Router();
  * POST /api/auth/register
  */
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "All fields required" });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  db.query(
-    "INSERT INTO users (name, email, password, wallet_balance) VALUES (?, ?, ?, 50000)",
-    [name, email, hashedPassword],
-    (err) => {
-      if (err) {
-        return res.status(500).json({ message: "User already exists" });
-      }
-      res.json({ message: "Account created successfully" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
     }
-  );
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user with default wallet ₹50,000
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      wallet_balance: 50000
+    });
+
+    await user.save();
+
+    res.json({
+      message: "Account created successfully",
+      userId: user._id,
+      name: user.name
+    });
+
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({ message: "Registration failed" });
+  }
 });
 
 /**
  * LOGIN
  * POST /api/auth/login
  */
-router.post("/login", (req, res) => {
-  const { email, password } = req.body;
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  db.query(
-    "SELECT * FROM users WHERE email = ?",
-    [email],
-    async (err, result) => {
-      if (err || result.length === 0) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      const user = result[0];
-      const match = await bcrypt.compare(password, user.password);
-
-      if (!match) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      res.json({
-        id: user.id,
-        name: user.name,
-        email: user.email
-      });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
-  );
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    res.json({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      wallet_balance: user.wallet_balance
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Login failed" });
+  }
 });
 
 module.exports = router;

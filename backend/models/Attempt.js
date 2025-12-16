@@ -16,4 +16,14 @@ const AttemptSchema = new mongoose.Schema({
   }
 });
 
+// ✅ Auto-update lastAttempt each time a record is modified
+AttemptSchema.pre("save", function (next) {
+  this.lastAttempt = Date.now();
+  next();
+});
+
+// ✅ Indexes
+AttemptSchema.index({ flight_id: 1 });
+AttemptSchema.index({ lastAttempt: 1 }, { expireAfterSeconds: 86400 }); // optional cleanup
+
 module.exports = mongoose.model("Attempt", AttemptSchema);

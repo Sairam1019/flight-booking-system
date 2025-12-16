@@ -1,8 +1,9 @@
+
 function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  fetch("http://localhost:5000/api/auth/login", {
+  fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
@@ -11,13 +12,18 @@ function login() {
     .then(data => {
       if (data.message) {
         alert(data.message);
-      } else {
-        // Save user session
-        localStorage.setItem("userId", data.id);
-        localStorage.setItem("userName", data.name);
-
-        alert("Login successful");
-        window.location.href = "index.html";
+        return;
       }
+
+      // ✅ CORRECT KEYS
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("userName", data.name);
+
+      alert("Login successful");
+      window.location.href = "/home";
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Login failed");
     });
 }
